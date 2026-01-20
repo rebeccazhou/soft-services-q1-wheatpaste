@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Soft Services - NYC Locations</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            display: flex;
+            height: 100vh;
+            background: #f5f5f5;
+        }
+        
+        .map-container {
+            width: 50%;
+            height: 100%;
+        }
+        
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .list-container {
+            width: 50%;
+            height: 100%;
+            overflow-y: auto;
+            padding: 40px;
+            background: #ffffff;
+        }
+        
+        .list-header {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .list-header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+        
+        .list-header p {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .location-list {
+            list-style: none;
+        }
+        
+        .location-item {
+            display: flex;
+            align-items: flex-start;
+            padding: 16px 0;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+        
+        .location-item:hover {
+            background: #fafafa;
+            margin: 0 -20px;
+            padding-left: 20px;
+            padding-right: 20px;
+        }
+        
+        .location-number {
+            width: 28px;
+            height: 28px;
+            background: #1a1a1a;
+            color: #fff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+            margin-right: 16px;
+            flex-shrink: 0;
+        }
+        
+        .location-name {
+            font-size: 15px;
+            color: #333;
+            line-height: 1.5;
+            padding-top: 3px;
+        }
+        
+        .numbered-marker {
+            background: #1a1a1a;
+            color: white;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+            border: 2px solid white;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+        
+        /* Greyscale map filter */
+        .leaflet-tile-pane {
+            filter: grayscale(100%);
+        }
+        
+        /* Mobile responsive - stacked layout */
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+            }
+            
+            .map-container {
+                width: 100%;
+                height: 50vh;
+            }
+            
+            .list-container {
+                width: 100%;
+                height: 50vh;
+                padding: 24px;
+            }
+            
+            .list-header {
+                margin-bottom: 16px;
+                padding-bottom: 12px;
+            }
+            
+            .list-header h1 {
+                font-size: 20px;
+            }
+            
+            .location-item:hover {
+                margin: 0 -12px;
+                padding-left: 12px;
+                padding-right: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="map-container">
+        <div id="map"></div>
+    </div>
+    
+    <div class="list-container">
+        <div class="list-header">
+            <h1>Soft Services</h1>
+            <p>New York City Locations, Q1 2026</p>
+        </div>
+        <ol class="location-list" id="locationList"></ol>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const locations = [
+                { name: "29th St bet 6th Ave & Broadway", lat: 40.717684, lng: -73.999292 },
+                { name: "30th St & Dyer", lat: 40.721022, lng: -74.000915 },
+                { name: "9th Ave bet 33rd St & 34th St", lat: 40.722014, lng: -74.005148 },
+                { name: "Baxter & Canal", lat: 40.714911, lng: -73.991143 },
+                { name: "Broadway bet 56th St & 57th St", lat: 40.719565, lng: -73.998044 },
+                { name: "Delancey & Allen", lat: 40.752064, lng: -73.999482 },
+                { name: "Dyer & 30th St", lat: 40.719640, lng: -73.998113 },
+                { name: "Grand bet Baxter & Centre", lat: 40.718722, lng: -73.999411 },
+                { name: "Grand bet Mercer & Broadway", lat: 40.753041, lng: -73.996653 },
+                { name: "Ludlow & Canal", lat: 40.721464, lng: -73.980683 },
+                { name: "Centre St & Hester St", lat: 40.710066, lng: -74.007894 },
+                { name: "Spring St & Thompson St", lat: 40.765815, lng: -73.981968 },
+                { name: "E 3rd St & Ave C", lat: 40.765965, lng: -73.981919 },
+                { name: "Allen St & Hester St", lat: 40.709495, lng: -74.009414 },
+                { name: "Maiden Ln bet Liberty & Broadway", lat: 40.751839, lng: -73.999261 },
+                { name: "Nassau bet Fulton & John St", lat: 40.751795, lng: -73.999383 },
+                { name: "Spring St bet Sullivan & Thompson", lat: 40.751769, lng: -73.999622 },
+                { name: "Thompson & Canal", lat: 40.752124, lng: -73.999078 },
+                { name: "Thompson bet Canal & Grand", lat: 40.746331, lng: -73.989257 }
+            ];
+
+            // Initialize map centered on NYC
+            const map = L.map('map').setView([40.735, -73.995], 13);
+
+            // Add greyscale tile layer
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+                subdomains: 'abcd',
+                maxZoom: 19
+            }).addTo(map);
+
+            // Create numbered markers and populate list
+            const listContainer = document.getElementById('locationList');
+            const bounds = [];
+
+            locations.forEach(function(loc, index) {
+                const num = index + 1;
+                
+                // Create custom numbered icon
+                const icon = L.divIcon({
+                    className: 'custom-marker',
+                    html: '<div class="numbered-marker">' + num + '</div>',
+                    iconSize: [28, 28],
+                    iconAnchor: [14, 14]
+                });
+
+                // Add marker to map
+                const marker = L.marker([loc.lat, loc.lng], { icon: icon }).addTo(map);
+                marker.bindPopup('<strong>' + num + '. ' + loc.name + '</strong>');
+                bounds.push([loc.lat, loc.lng]);
+
+                // Add to list
+                const listItem = document.createElement('li');
+                listItem.className = 'location-item';
+                listItem.innerHTML = '<span class="location-number">' + num + '</span><span class="location-name">' + loc.name + '</span>';
+                listItem.addEventListener('click', function() {
+                    map.setView([loc.lat, loc.lng], 16);
+                    marker.openPopup();
+                });
+                listContainer.appendChild(listItem);
+            });
+
+            // Fit map to show all markers
+            if (bounds.length > 0) {
+                map.fitBounds(bounds, { padding: [30, 30] });
+            }
+        });
+    </script>
+</body>
+</html>
